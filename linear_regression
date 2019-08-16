@@ -1,0 +1,242 @@
+[Spark Documentation](https://spark.apache.org/docs/2.4.0/)
+
+[Scala Documentation](https://docs.scala-lang.org/)
+
+# Plan
+
+1. Prendre en main le notebook
+2. Prendre en main Scala
+3. Découverte de l'API DataFrame
+4. Splitter en training set et test set
+5. Définir le modèle
+6. Rendre les features utilisables
+7. Mettre dans une pipeline ?
+7. Définir les features et label
+8. Appliquer le modèle
+9. Utiliser le modèle pour faire des prédictions
+10. Vérifier ses prédictions
+
+# 1. Prendre en main le notebook
+
+Databricks met en place une plateforme pour tester Spark. Il y a quelques données dessus dans le système de fichiers distribué de Databricks.
+
+Je vous propose de vous créer un compte. C’est là-dessus que nous ferons nos exercices.
+
+Pour info Databricks a été fondé par les créateurs de Spark et agit en support de ce produit.
+
+1. Se rendre sur cette URL https://databricks.com/try-databricks
+2. Choisir la “community edition” en cliquant “Get started”
+3. Remplir les champs
+4. Cliquer "sign up"
+5. Dans vos mails, cliquer sur le lien pour vérifier votre email
+6. Choisissez votre mot de passe
+7. Après avoir cliqué “Reset password”, vous voilà dans la plateforme que nous allons utiliser
+8. Cliquer sur "New notebook" pour ouvrir un nouveau notebook
+9. Choisir le nom que vous voulez et bien spécifier "Scala"
+10. Cliquer sur Detached
+11. Cliquer sur "create a cluster"
+12. Entrer un nom dans le champ "Cluster Name"
+13. Cliquer "Create Cluster"
+14. Retourner au notebook en cliquant "databricks" puis en choisissant votre notebook
+15. Cliquer sur "Detached" et sélectionner le cluster récemment créé
+
+# 2. Prendre en main Scala
+
+## Scala variable
+
+```scala
+val age = 12
+println(age)
+```
+12
+
+## Scala fonction
+
+```scala
+def speak() = {
+  println("salut")
+}
+
+speak()
+```
+salut
+
+```scala
+def speak(word: String) = {
+  println(word)
+}
+
+speak("hello ")
+```
+hello
+
+```scala
+def sendWord(word: String) = {
+  "hello " + word
+}
+
+println(sendWord(" world"))
+```
+hello world
+
+## Case class
+
+```scala
+case class Personne(age: Int, name: String)
+val personne1 = Personne(12, "Lucien")
+
+println(personne1.age)
+```
+12
+
+# 3. Découverte des APIS haut niveau
+
+## DataFrame
+
+Pour lire un fichier CSV avec Spark, on utilise cette fonction, le "show" nous permettant d'afficher les 20 premières lignes :
+
+```scala
+val simpleDiamonds = spark.read.csv("diamonds.csv")
+simpleDiamonds.show
+```
+
+```
++----+-----+---------+-----+-------+-----+-----+-----+----+----+----+
+| _c0|  _c1|      _c2|  _c3|    _c4|  _c5|  _c6|  _c7| _c8| _c9|_c10|
++----+-----+---------+-----+-------+-----+-----+-----+----+----+----+
+|null|carat|      cut|color|clarity|depth|table|price|   x|   y|   z|
+|   1| 0.23|    Ideal|    E|    SI2| 61.5|   55|  326|3.95|3.98|2.43|
+|   2| 0.21|  Premium|    E|    SI1| 59.8|   61|  326|3.89|3.84|2.31|
+|   3| 0.23|     Good|    E|    VS1| 56.9|   65|  327|4.05|4.07|2.31|
+|   4| 0.29|  Premium|    I|    VS2| 62.4|   58|  334| 4.2|4.23|2.63|
+|   5| 0.31|     Good|    J|    SI2| 63.3|   58|  335|4.34|4.35|2.75|
+|   6| 0.24|Very Good|    J|   VVS2| 62.8|   57|  336|3.94|3.96|2.48|
+|   7| 0.24|Very Good|    I|   VVS1| 62.3|   57|  336|3.95|3.98|2.47|
+|   8| 0.26|Very Good|    H|    SI1| 61.9|   55|  337|4.07|4.11|2.53|
+|   9| 0.22|     Fair|    E|    VS2| 65.1|   61|  337|3.87|3.78|2.49|
+|  10| 0.23|Very Good|    H|    VS1| 59.4|   61|  338|   4|4.05|2.39|
+|  11|  0.3|     Good|    J|    SI1|   64|   55|  339|4.25|4.28|2.73|
+|  12| 0.23|    Ideal|    J|    VS1| 62.8|   56|  340|3.93| 3.9|2.46|
+|  13| 0.22|  Premium|    F|    SI1| 60.4|   61|  342|3.88|3.84|2.33|
+|  14| 0.31|    Ideal|    J|    SI2| 62.2|   54|  344|4.35|4.37|2.71|
+|  15|  0.2|  Premium|    E|    SI2| 60.2|   62|  345|3.79|3.75|2.27|
+|  16| 0.32|  Premium|    E|     I1| 60.9|   58|  345|4.38|4.42|2.68|
+|  17|  0.3|    Ideal|    I|    SI2|   62|   54|  348|4.31|4.34|2.68|
+|  18|  0.3|     Good|    J|    SI1| 63.4|   54|  351|4.23|4.29| 2.7|
+|  19|  0.3|     Good|    J|    SI1| 63.8|   56|  351|4.23|4.26|2.71|
++----+-----+---------+-----+-------+-----+-----+-----+----+----+----+
+```
+
+Pour lire un fichier CSV avec Spark en prenant en compte le header, on utilise cette fonction :
+
+```scala
+val diamondsWithHeader = spark.read.option("header", "true").csv("diamonds.csv")
+diamondsWithHeader.show
+```
+
+Pour imprimer le schéma, on utilise la fonction "printSchema" :
+
+```scala
+diamondsWithHeader.printSchema
+```
+
+## Exercice
+
+1. Importer le fichier wine.csv dans les ressources Databricks
+2. Lire le fichier
+3. Faire un show
+4. Faire un printSchema
+
+# 4. Splitter en training set et test set
+
+Nous allons travailler l'algorithme sur un training set et l'évaluer sur un test set.
+Nous devons donc splitter nos data en 2 :
+
+```scala
+val Array(trainingData, testData) = data.randomSplit(Array(0.7, 0.3))
+```
+
+## Exercice
+
+1. Splitter comme montré au-dessus votre dataFrame.
+2. Faire un show pour vérifier que tout s'est bien passé.
+
+# 5. Définir le modèle
+
+Pour définir une régression linéaire, nous allons faire appel à un estimator comme suit :
+
+```scala
+val lr = new LinearRegression
+```
+
+On peut ajouter des options que nous appelons hyperparamètres comme suit :
+
+```scala
+val lr = new LinearRegression.setMaxIter(10)
+```
+
+## Exercice
+
+1. Créer un estimateur (pas besoin de mettre de paramètre pour l'instant)
+
+#6. Préparer les features
+
+Spark ne prend en entrée comme features qu'un vector de valeurs numériques. Il nous faut donc transformer notre variable explicative.
+
+## Exercice
+Préparer les features pour en faire un tableau de vecteurs.
+
+# 7. Définir les features et label
+
+Le label est ce que nous voulons prédire. Les features sont les variables qui servent à prédire.
+
+```scala
+val lr = new LinearRegression.setLabelCol("X").setFeaturesCol("Y")
+```
+
+## Exercice 
+
+Ajouter le label et les features à l'estimator qui vient d'être produit.
+
+#8. Appliquer le modèle
+
+Nous avons préparé nos données.
+Nous avons notre estimator.
+Nous allons nous en servir pour créer un modèle.
+
+```scala
+val lrModel = lr.fit(training)
+```
+
+## Exercice
+
+Appliquer le modèle
+
+#9. Utiliser le modèle pour faire des prédictions
+
+Maintenant que nous avons notre modèle, nous pouvons l'utiliser.
+
+```scala
+val predictions = model.transform(testData)
+```
+
+# Exercice
+
+Lancer les prédictions sur votre test set.
+
+# 10. Vérifier ses prédictions
+
+Nous devons vérifier si nos prédictions sont correctes.
+Pour cela nous pouvons regarder les résidus, c'est-à-dire les éléments qui ne collent pas à la droite.
+
+Nous avons plusieurs valeurs pour mesurer la validté de nos résultats.
+
+- RMSE (Root Mean Squared Error) : Moyenne des sommes des erreurs au carré. Plus il est bas, plus c'est bon.
+- R2 (entre 0 et 100%) : combien le modèle explique les données. Si c'est 100%, c'est parfait. Donc plus c'est haut, mieux c'est.
+
+```scala
+val trainingSummary = lrModel.summary
+trainingSummary.residuals.show()
+println(s"RMSE: ${trainingSummary.rootMeanSquaredError}")
+println(s"r2: ${trainingSummary.r2}")
+```
